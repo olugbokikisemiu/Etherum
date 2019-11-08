@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/big"
 	"os"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -41,13 +42,14 @@ func NewSession(ctx context.Context, keyStore string, keyPass string) inbox.Inbo
 	}
 
 	auth.GasLimit = 1000000
+	auth.GasPrice = big.NewInt(1)
+
 
 	return inbox.InboxSession{
 		TransactOpts: *auth,
 		CallOpts: bind.CallOpts{
 			From:    auth.From,
 			Context: ctx,
-			Pending: true,
 		},
 	}
 }
@@ -88,6 +90,14 @@ func ReadMessage(session inbox.InboxSession) string {
 		return err.Error()
 	}
 	return msg
+}
+
+func SetMessage(session inbox.InboxSession, message string) string {
+	tx, err := session.SetMessage(message)
+	if err != nil {
+		return err.Error()
+	}
+	return tx.Hash().Hex()
 }
 
 func updateEnvFile(k string, val string) {
