@@ -44,6 +44,7 @@ func NewSession(ctx context.Context, keyStore string, keyPass string) inbox.Inbo
 	auth.GasLimit = 1000000
 	auth.GasPrice = big.NewInt(1)
 
+
 	return inbox.InboxSession{
 		TransactOpts: *auth,
 		CallOpts: bind.CallOpts{
