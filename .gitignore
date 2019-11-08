@@ -2,7 +2,5 @@
 boot.key
 go.mod
 go.sum
-node1/password.txt
-node2/password.txt
-node1/keystore/UTC--2019-11-06T20-55-51.671030000Z--3fdf7322063a1492737e135bc6ad1b8ee9ef18a3
-node2/keystore/UTC--2019-11-06T20-57-14.253150000Z--52d0ff4c35508ef09767b050a5d426136d1962d0
+node1
+node2
