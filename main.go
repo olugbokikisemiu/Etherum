@@ -15,7 +15,7 @@ func main() {
 		log.Fatalf("could not load env: %v\n", err)
 	}
 
-	ctx := context.Background()
+	c := context.Background()
 
 	client, err := ethclient.Dial(os.Getenv("LOCAL_GATEWAY"))
 	if err != nil {
@@ -23,10 +23,18 @@ func main() {
 	}
 	defer client.Close()
 
-	session := message.NewSession(ctx, "KEYSTORE", "KEYSTOREPASS")
+	inboxSession := &message.InboxSession{
+		Ctx:      c,
+		Client:   client,
+		KeyStore: "KEYSTORE",
+		KeyPass:  "KEYSTOREPASS",
+		Address:  "ADDRESS",
+	}
 
-	sess := message.LoadInboxContract(session, client, "ADDRESS")
+	inboxSession.Session = inboxSession.NewSession()
 
-	log.Println(message.ReadMessage(sess))
+	inboxSession.LoadInboxContract()
+
+	log.Println(inboxSession.ReadMessage())
 
 }
