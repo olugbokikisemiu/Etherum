@@ -18,6 +18,17 @@ var myenv map[string]string
 
 const envLoc = ".env"
 
+// InboxSession struct type of inbox values
+type InboxSession struct {
+	Ctx      context.Context
+	Session  inbox.InboxSession
+	Client   *ethclient.Client
+	KeyStore string
+	KeyPass  string
+	Message  string
+	Address  string
+}
+
 func loadEnv() {
 	var err error
 	if myenv, err = godotenv.Read(envLoc); err != nil {
@@ -25,17 +36,17 @@ func loadEnv() {
 	}
 }
 
-// NewSession creates an inbox session
-func NewSession(ctx context.Context, keyStore string, keyPass string) inbox.InboxSession {
+// NewSession creates an inbox Session
+func (i *InboxSession) NewSession() inbox.InboxSession {
 	loadEnv()
-	keystore, err := os.Open(myenv[keyStore])
+	keystore, err := os.Open(myenv[i.KeyStore])
 	if err != nil {
-		log.Fatalf("Cannot load keystore from location %s: %v\n", os.Getenv(keyStore), err)
+		log.Fatalf("Cannot load keystore from location %s: %v\n", os.Getenv(i.KeyStore), err)
 	}
 
 	defer keystore.Close()
 
-	keypass := myenv[keyPass]
+	keypass := myenv[i.KeyPass]
 	auth, err := bind.NewTransactor(keystore, keypass)
 	if err != nil {
 		log.Fatalf("Error occurreed %v\n", err)
@@ -44,56 +55,55 @@ func NewSession(ctx context.Context, keyStore string, keyPass string) inbox.Inbo
 	auth.GasLimit = 1000000
 	auth.GasPrice = big.NewInt(1)
 
-
 	return inbox.InboxSession{
 		TransactOpts: *auth,
 		CallOpts: bind.CallOpts{
 			From:    auth.From,
-			Context: ctx,
+			Context: i.Ctx,
 		},
 	}
 }
 
 // DeployInboxContract deploys inbox contract if none exist
-func DeployInboxContract(session inbox.InboxSession, client *ethclient.Client, message string) inbox.InboxSession {
+func (i *InboxSession) DeployInboxContract() inbox.InboxSession {
 	loadEnv()
 
-	contractAddress, tx, instance, err := inbox.DeployInbox(&session.TransactOpts, client, message)
+	contractAddress, tx, instance, err := inbox.DeployInbox(&i.Session.TransactOpts, i.Client, i.Message)
 	if err != nil {
 		log.Fatalf("Deployment error %+v", err)
 	}
 
 	fmt.Printf("Contract deployed! Wait for tx %s to be confirmed.\n", tx.Hash().Hex())
 
-	session.Contract = instance
+	i.Session.Contract = instance
 	updateEnvFile("ADDRESS", contractAddress.Hex())
-	return session
+	return i.Session
 }
 
 // LoadInboxContract load existing contracts
-func LoadInboxContract(session inbox.InboxSession, client *ethclient.Client, address string) inbox.InboxSession {
+func (i *InboxSession) LoadInboxContract() inbox.InboxSession {
 	loadEnv()
 
-	addr := common.HexToAddress(myenv[address])
-	instance, err := inbox.NewInbox(addr, client)
+	addr := common.HexToAddress(myenv[i.Address])
+	instance, err := inbox.NewInbox(addr, i.Client)
 	if err != nil {
 		log.Fatalf("Error loading contract: %+v", err)
 	}
-	session.Contract = instance
-	return session
+	i.Session.Contract = instance
+	return i.Session
 }
 
 // ReadMessage reads message passed to contract constructor while deploying
-func ReadMessage(session inbox.InboxSession) string {
-	msg, err := session.TestMessage()
+func (i *InboxSession) ReadMessage() string {
+	msg, err := i.Session.TestMessage()
 	if err != nil {
 		return err.Error()
 	}
 	return msg
 }
 
-func SetMessage(session inbox.InboxSession, message string) string {
-	tx, err := session.SetMessage(message)
+func (i *InboxSession) SetMessage() string {
+	tx, err := i.Session.SetMessage(i.Message)
 	if err != nil {
 		return err.Error()
 	}
