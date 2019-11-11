@@ -58,8 +58,9 @@ func (i *InboxSession) NewSession() inbox.InboxSession {
 		auth = bind.NewKeyedTransactor(privatekey)
 	}
 
-	auth.GasLimit = 1000000
-	auth.GasPrice = big.NewInt(1000000)
+	auth.Nonce = big.NewInt(1)
+	auth.GasLimit = 3000000
+	auth.GasPrice = big.NewInt(1200000000000)
 
 	return inbox.InboxSession{
 		TransactOpts: *auth,
