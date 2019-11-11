@@ -17,18 +17,16 @@ func main() {
 
 	c := context.Background()
 
-	client, err := ethclient.Dial(os.Getenv("LOCAL_GATEWAY"))
+	client, err := ethclient.Dial(os.Getenv("GATEWAY"))
 	if err != nil {
 		log.Fatalf("could not connect to Ethereum gateway: %v\n", err)
 	}
 	defer client.Close()
 
 	inboxSession := &message.InboxSession{
-		Ctx:      c,
-		Client:   client,
-		KeyStore: "KEYSTORE",
-		KeyPass:  "KEYSTOREPASS",
-		Address:  "ADDRESS",
+		Ctx:    c,
+		Client: client,
+		Local:  false,
 	}
 
 	inboxSession.Session = inboxSession.NewSession()
@@ -36,5 +34,4 @@ func main() {
 	inboxSession.LoadInboxContract()
 
 	log.Println(inboxSession.ReadMessage())
-
 }

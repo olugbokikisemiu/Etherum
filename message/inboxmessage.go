@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/joho/godotenv"
 	"github.com/olugbokikisemiu/EthereumDemo/inbox"
@@ -20,13 +21,11 @@ const envLoc = ".env"
 
 // InboxSession struct type of inbox values
 type InboxSession struct {
-	Ctx      context.Context
-	Session  inbox.InboxSession
-	Client   *ethclient.Client
-	KeyStore string
-	KeyPass  string
-	Message  string
-	Address  string
+	Ctx     context.Context
+	Session inbox.InboxSession
+	Client  *ethclient.Client
+	Local   bool
+	Message string
 }
 
 func loadEnv() {
@@ -39,21 +38,28 @@ func loadEnv() {
 // NewSession creates an inbox Session
 func (i *InboxSession) NewSession() inbox.InboxSession {
 	loadEnv()
-	keystore, err := os.Open(myenv[i.KeyStore])
-	if err != nil {
-		log.Fatalf("Cannot load keystore from location %s: %v\n", os.Getenv(i.KeyStore), err)
-	}
+	var auth *bind.TransactOpts
+	switch i.Local {
+	case true:
+		keystore, err := os.Open(myenv["KEYSTORE"])
+		if err != nil {
+			log.Fatalf("Cannot load keystore from location %s: %v\n", os.Getenv("KEYSTORE"), err)
+		}
 
-	defer keystore.Close()
+		defer keystore.Close()
 
-	keypass := myenv[i.KeyPass]
-	auth, err := bind.NewTransactor(keystore, keypass)
-	if err != nil {
-		log.Fatalf("Error occurreed %v\n", err)
+		keypass := myenv["KEYSTOREPASS"]
+		auth, err = bind.NewTransactor(keystore, keypass)
+		if err != nil {
+			log.Fatalf("Error occurreed %v\n", err)
+		}
+	default:
+		privatekey, _ := crypto.HexToECDSA(os.Getenv("PRIVATE_KEY"))
+		auth = bind.NewKeyedTransactor(privatekey)
 	}
 
 	auth.GasLimit = 1000000
-	auth.GasPrice = big.NewInt(1)
+	auth.GasPrice = big.NewInt(1000000)
 
 	return inbox.InboxSession{
 		TransactOpts: *auth,
@@ -76,15 +82,26 @@ func (i *InboxSession) DeployInboxContract() inbox.InboxSession {
 	fmt.Printf("Contract deployed! Wait for tx %s to be confirmed.\n", tx.Hash().Hex())
 
 	i.Session.Contract = instance
-	updateEnvFile("ADDRESS", contractAddress.Hex())
+	switch i.Local {
+	case true:
+		updateEnvFile("LOCAL_ADDRESS", contractAddress.Hex())
+	default:
+		updateEnvFile("ADDRESS", contractAddress.Hex())
+	}
+
 	return i.Session
 }
 
 // LoadInboxContract load existing contracts
 func (i *InboxSession) LoadInboxContract() inbox.InboxSession {
 	loadEnv()
-
-	addr := common.HexToAddress(myenv[i.Address])
+	var addr common.Address
+	switch i.Local {
+	case true:
+		addr = common.HexToAddress(myenv["LOCAL_ADDRESS"])
+	default:
+		addr = common.HexToAddress(myenv["ADDRESS"])
+	}
 	instance, err := inbox.NewInbox(addr, i.Client)
 	if err != nil {
 		log.Fatalf("Error loading contract: %+v", err)
