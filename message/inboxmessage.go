@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -21,11 +22,12 @@ const envLoc = ".env"
 
 // InboxSession struct type of inbox values
 type InboxSession struct {
-	Ctx     context.Context
-	Session inbox.InboxSession
-	Client  *ethclient.Client
-	Local   bool
-	Message string
+	Ctx      context.Context
+	Session  inbox.InboxSession
+	Client   *ethclient.Client
+	Local    bool
+	Message  string
+	Keystore *keystore.KeyStore
 }
 
 func loadEnv() {
